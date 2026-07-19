@@ -1,0 +1,35 @@
+# Environments and API Keys
+.env
+*.env
+
+# Python caching and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# System and CLI configurations / databases
+conversation_summaries.db*
+history.jsonl
+installation_id
+jetski_state.pbtxt
+last_check.timestamp
+cli.log
+settings.json
+crashes/
+brain/
+conversations/
+implicit/
+knowledge/
+log/
+scratch/
+updater/
+bin/
+cache/
+philosophy-media-organizer/
+whisper-flow-desktop/
+*.html
