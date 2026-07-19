@@ -1,11 +1,11 @@
-# 🌀 Antigravity CLI
+# 🌀 Typi CLI
 
-`antigravity` is a modular, production-ready CLI utility belt that bundles local filesystem automation and advanced Gemini-driven analytical processors under a single clean toolchain.
+`typi` is a modular, production-ready CLI utility belt that bundles local filesystem automation and advanced Gemini-driven analytical processors under a single clean toolchain.
 
 ## 🚀 Features
 
 ### 📂 Files Module
-- **`shuffle`**: Recursively shuffles the locations of all files in a folder, cleans up defunct directories, and produces an interactive, search-enabled HTML directory layout tree (`antigravity_map.html`).
+- **`shuffle`**: Recursively shuffles the locations of all files in a folder, cleans up defunct directories, and produces an interactive, search-enabled HTML directory layout tree (`typi_map.html`).
 - **`clean`**: Groups and sorts all root files in a folder into categorized directories (`images`, `documents`, `audio`, `videos`, `archives`, `code`, `executables`, `other`) based on their extensions.
 
 ### 🧠 AI Module
@@ -18,8 +18,8 @@
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/nezumikait-max/antigravity.git
-   cd antigravity
+   git clone https://github.com/nezumikait-max/typi.git
+   cd typi
    ```
 
 2. **Configure Environment Variables**:
@@ -44,7 +44,7 @@
 ```bash
 python main.py files shuffle "C:/path/to/target/folder"
 ```
-*Rearranges the file system configuration and writes `antigravity_map.html` in the target directory.*
+*Rearranges the file system configuration and writes `typi_map.html` in the target directory.*
 
 ### File Organizing (Cleaning)
 ```bash

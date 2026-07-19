@@ -18,7 +18,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Antigravity Directory Map</title>
+    <title>Typi Directory Map</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -207,7 +207,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <body>
     <div class="container">
         <header>
-            <h1>🌀 Antigravity Directory Map</h1>
+            <h1>🌀 Typi Directory Map</h1>
             <p>Interactive Visualization of Shuffled Directory Structure</p>
         </header>
         
@@ -221,7 +221,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
     
     <footer>
-        Generated with 🌀 Antigravity CLI | __GENERATED_TIME__
+        Generated with 🌀 Typi CLI | __GENERATED_TIME__
     </footer>
 
     <script>
@@ -257,7 +257,7 @@ def build_tree(path: Path) -> Dict[str, Any]:
     tree = {"name": path.name or str(path), "type": "directory", "children": []}
     try:
         for entry in path.iterdir():
-            if entry.name.startswith('.') or entry.name == "antigravity_map.html":
+            if entry.name.startswith('.') or entry.name == "typi_map.html":
                 continue
             if entry.is_dir():
                 tree["children"].append(build_tree(entry))
@@ -334,7 +334,7 @@ def generate_html_map(target_path: Path) -> None:
         html_content = HTML_TEMPLATE.replace("__TREE_CONTENT__", tree_html)
         html_content = html_content.replace("__GENERATED_TIME__", now_str)
         
-        output_file = target_path / "antigravity_map.html"
+        output_file = target_path / "typi_map.html"
         output_file.write_text(html_content, encoding="utf-8")
         
         # Output visual link
@@ -372,7 +372,7 @@ def shuffle_directory(
         # Find all files recursively, excluding the generated HTML map itself and hidden files
         files: List[Path] = [
             p for p in target_path.rglob('*') 
-            if p.is_file() and p.name != "antigravity_map.html" and not p.name.startswith('.')
+            if p.is_file() and p.name != "typi_map.html" and not p.name.startswith('.')
         ]
         
         if len(files) < 2:
@@ -473,7 +473,7 @@ def clean_directory(
         # Collect files in the ROOT of the target directory to avoid recursive confusion
         files_to_move: List[Path] = [
             p for p in target_path.iterdir() 
-            if p.is_file() and p.name != "antigravity_map.html" and not p.name.startswith('.')
+            if p.is_file() and p.name != "typi_map.html" and not p.name.startswith('.')
         ]
         
         if not files_to_move:

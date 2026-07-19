@@ -1,7 +1,7 @@
-# 🌀 Antigravity Project Context
+# 🌀 Typi Project Context
 
 ## 🎯 Project Overview
-`antigravity` is a modular, high-performance CLI utility belt designed for developers and systems engineers. It integrates local file system automation utilities with advanced AI capabilities powered by the Google Gemini API.
+`typi` is a modular, high-performance CLI utility belt designed for developers and systems engineers. It integrates local file system automation utilities with advanced AI capabilities powered by the Google Gemini API.
 
 ---
 
@@ -31,7 +31,7 @@ The application uses a modular directory namespace layout:
 ---
 
 ## 🎨 Visual Map Features
-The `shuffle` command generates a premium, dark-mode visual map ([antigravity_map.html](file:///C:/Users/eelri/.gemini/antigravity-cli/antigravity_map.html)) of the randomized structure. The interface features:
+The `shuffle` command generates a premium, dark-mode visual map ([typi_map.html](file:///C:/Users/eelri/.gemini/antigravity-cli/typi_map.html)) of the randomized structure. The interface features:
 - Glassmorphic card overlays.
 - A responsive collapsable folder tree (`<details>` / `<summary>`).
 - Interactive Javascript filtering to search for files.

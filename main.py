@@ -12,8 +12,8 @@ from commands import files, ai
 
 # Initialize main Typer app
 app = typer.Typer(
-    name="antigravity",
-    help="🌀 Antigravity: A modular CLI utility belt for modern systems engineers.",
+    name="typi",
+    help="🌀 Typi: A modular CLI utility belt for modern systems engineers.",
     add_completion=True
 )
 
@@ -24,7 +24,7 @@ app.add_typer(ai.app, name="ai")
 @app.callback()
 def main_callback():
     """
-    Antigravity CLI - Shuffles structures, cleans directories, and processes multimodal inputs.
+    Typi CLI - Shuffles structures, cleans directories, and processes multimodal inputs.
     """
     pass
 
