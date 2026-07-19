@@ -1,96 +1,212 @@
 import time
 import sys
 import keyboard
-import pyperclip
 import ai_engine
 
-# Adjustable delays (in seconds) to prevent OS/application race conditions
-KEY_RELEASE_DELAY = 0.05
-CLIPBOARD_COPY_DELAY = 0.10
-CLIPBOARD_PASTE_DELAY = 0.10
+# Dictionary of available triggers and their respective AI roles/prompts
+TRIGGERS = {
+    "!fix": {
+        "action_name": "Fix Grammar & Typos",
+        "system_prompt": (
+            "You are a helpful writing assistant. Correct all typos, grammar errors, "
+            "spelling mistakes, and punctuation issues in the text. Improve flow and clarity "
+            "while maintaining the original tone and meaning."
+        )
+    },
+    "!email": {
+        "action_name": "Rewrite as Professional Email",
+        "system_prompt": (
+            "You are a professional business writer. Rewrite the input text into a clear, "
+            "polite, professional, and well-structured business email."
+        )
+    },
+    "!casual": {
+        "action_name": "Rewrite in Casual Tone",
+        "system_prompt": (
+            "You are a friendly writing assistant. Rewrite the input text in a warm, "
+            "relaxed, friendly, and casual conversational tone."
+        )
+    },
+    "!expand": {
+        "action_name": "Expand Details & Paragraphs",
+        "system_prompt": (
+            "You are an expert editor. Elaborate on the user's input text. Flesh out the details, "
+            "expand it into a complete, well-formed, logical paragraph or message."
+        )
+    }
+}
 
-def trigger_writing_assistant():
+# State variables for the inline parser
+active_trigger = None
+captured_buffer = []
+typed_buffer = []
+
+def deactivate_and_replace():
     """
-    Core handler triggered by the Ctrl+Alt+A hotkey.
-    Captures highlighted text, refines it with Gemini, replaces it,
-    and restores the user's clipboard history.
+    Called when a deactivation trigger is detected.
+    Removes the triggers and text from the screen, refines it, and writes it back.
     """
-    original_clipboard = None
+    global active_trigger, captured_buffer, typed_buffer
+    
+    trigger = active_trigger
+    active_trigger = None
+    typed_buffer.clear()
+    
+    # Extract the full string captured so far
+    full_captured = "".join(captured_buffer)
+    captured_buffer.clear()
+    
+    # Strip the deactivation trigger from the end of the text
+    if not full_captured.endswith(trigger):
+        print(f"⚠️ [Typi] Deactivation buffer misalignment. Aborting.")
+        return
+        
+    text_to_process = full_captured[:-len(trigger)]
+    
+    if not text_to_process.strip():
+        print("⚠️ [Typi] Captured text is empty. Skipping replacement.")
+        return
+        
+    print(f"\n🔴 [Typi] Deactivation trigger detected for '{trigger}'.")
+    print(f"📖 [Typi] Captured text: \"{text_to_process.strip()[:40]}...\"")
+    
+    # Calculate backspaces required:
+    # 1. Length of activation trigger (e.g., 4 characters for '!fix')
+    # 2. Length of the captured text
+    # 3. Length of deactivation trigger (e.g., 4 characters for '!fix')
+    backspace_count = len(trigger) + len(text_to_process) + len(trigger)
+    
+    # Unhook keyboard events during simulation to prevent self-triggering feedback loops
+    keyboard.unhook_all()
+    
     try:
-        print("\n⚡ [Typi Assistant] Hotkey triggered! Capture initiated...")
-        
-        # Step 1: Backup current clipboard contents
-        original_clipboard = pyperclip.paste()
-        
-        # Step 2: Clear clipboard to verify if a copy operation actually occurs
-        pyperclip.copy("")
-        
-        # Step 3: Release hotkey modifier keys to avoid interference with simulated keys
-        # If user is still holding Ctrl/Alt, the OS may register Ctrl+Alt+C instead of Ctrl+C
-        keyboard.release('ctrl')
-        keyboard.release('alt')
-        keyboard.release('a')
-        time.sleep(KEY_RELEASE_DELAY)
-        
-        # Step 4: Simulate Copy (Ctrl+C) to capture highlighted text
-        keyboard.press_and_release('ctrl+c')
-        time.sleep(CLIPBOARD_COPY_DELAY)
-        
-        # Step 5: Extract the captured text
-        captured_text = pyperclip.paste()
-        if not captured_text or not captured_text.strip():
-            print("⚠️ [Typi Assistant] No text highlighted. Clipboard restoration complete. Skipping.")
-            if original_clipboard is not None:
-                pyperclip.copy(original_clipboard)
-            return
+        # Step 1: Send backspaces to delete the triggers and raw text from the screen
+        print(f"🧹 [Typi] Erasing triggers and raw text ({backspace_count} characters)...")
+        for _ in range(backspace_count):
+            keyboard.send('backspace')
+            time.sleep(0.005)  # Tiny pause to ensure OS keystroke queue is not overloaded
             
-        print(f"📖 [Typi Assistant] Captured text: \"{captured_text[:40]}...\"")
-        print("🤖 [Typi Assistant] Sending payload to Gemini...")
+        time.sleep(0.05)
         
-        # Step 6: Process text via the AI Engine
-        polished_text = ai_engine.process_text(captured_text)
+        # Step 2: Query the Gemini API using the selected trigger prompt
+        prompt_info = TRIGGERS[trigger]
+        print(f"🤖 [Typi] Refinement role: {prompt_info['action_name']}...")
         
-        if polished_text == captured_text:
-            print("✨ [Typi Assistant] Text is already optimal or could not be polished. Restoring clipboard.")
-            pyperclip.copy(original_clipboard)
-            return
-            
-        # Step 7: Put polished text on clipboard and paste it (Ctrl+V)
-        pyperclip.copy(polished_text)
-        print("✍️ [Typi Assistant] Replacing text with refined version...")
-        keyboard.press_and_release('ctrl+v')
-        time.sleep(CLIPBOARD_PASTE_DELAY)
+        polished_text = ai_engine.process_text(text_to_process, prompt_info['system_prompt'])
         
-        print("🎉 [Typi Assistant] Text successfully updated!")
+        # Step 3: Type the polished text back to the screen
+        print("✍️ [Typi] Writing polished text...")
+        keyboard.write(polished_text)
+        print("🎉 [Typi] Text successfully refined!")
         
     except Exception as e:
-        print(f"❌ [Typi Assistant Error]: An unexpected error occurred: {str(e)}")
-        
+        print(f"❌ [Typi Error] Replacement failed: {str(e)}")
+        # Safety fallback: restore what the user typed in case of failure
+        try:
+            keyboard.write(text_to_process)
+        except:
+            pass
+            
     finally:
-        # Step 8: Always restore the user's original clipboard backup
-        if original_clipboard is not None:
-            try:
-                pyperclip.copy(original_clipboard)
-            except Exception as backup_err:
-                print(f"⚠️ [Typi Assistant] Failed to restore original clipboard: {str(backup_err)}")
+        # Re-register the key listener
+        keyboard.hook(on_key_event)
+        print("🌀 [Typi] Standing by for triggers...")
+
+def on_key_event(event):
+    """
+    Hooked key listener callback. Monitors typed characters, keeps a rolling buffer,
+    and handles activation/deactivation triggers.
+    """
+    global active_trigger, captured_buffer, typed_buffer
+    
+    # Process key down events only
+    if event.event_type == 'down':
+        key_name = event.name
+        
+        # Cancel recording on any explicit cursor movement to prevent writing in wrong positions
+        if key_name in ['left', 'right', 'up', 'down', 'esc', 'tab', 'home', 'end', 'page up', 'page down']:
+            if active_trigger:
+                print(f"⚠️ [Typi] Cursor movement detected ({key_name}). Resetting active trigger '{active_trigger}'.")
+                active_trigger = None
+                captured_buffer.clear()
+            typed_buffer.clear()
+            return
+            
+        # Ignore modifier keys so they don't break character tracking
+        if key_name in ['shift', 'ctrl', 'alt', 'windows', 'caps lock', 'num lock', 'scroll lock']:
+            return
+            
+        # Handle Backspace
+        if key_name == 'backspace':
+            if active_trigger:
+                if captured_buffer:
+                    captured_buffer.pop()
+                else:
+                    # If they deleted past the text, they are deleting the activation trigger
+                    print(f"↩️ [Typi] Activation trigger '{active_trigger}' deleted. Resetting.")
+                    active_trigger = None
+            if typed_buffer:
+                typed_buffer.pop()
+            return
+            
+        # Translate special key names to strings
+        if key_name == 'space':
+            char = " "
+        elif key_name == 'enter':
+            char = "\n"
+        elif len(key_name) == 1:
+            char = key_name
+        else:
+            return  # Ignore other functional buttons (F1-F12, print screen, etc.)
+            
+        # Accumulate captured text if in active mode
+        if active_trigger:
+            captured_buffer.append(char)
+            
+        # Keep a rolling buffer of recently typed characters
+        typed_buffer.append(char)
+        if len(typed_buffer) > 30:
+            typed_buffer.pop(0)
+            
+        current_str = "".join(typed_buffer).lower()
+        
+        # Check triggers
+        if active_trigger:
+            # Check for deactivation
+            if current_str.endswith(active_trigger):
+                deactivate_and_replace()
+        else:
+            # Check for activation
+            for trigger in TRIGGERS.keys():
+                if current_str.endswith(trigger):
+                    active_trigger = trigger
+                    captured_buffer.clear()
+                    typed_buffer.clear()
+                    print(f"🟢 [Typi] Activation trigger '{trigger}' detected. Recording text...")
+                    break
 
 def main():
-    print("=" * 60)
-    print("🌀 Typi AI Writing Assistant Daemon (System-Wide)")
-    print("=" * 60)
+    print("=" * 70)
+    print("🌀 Typi AI Writing Assistant Daemon (Inline Triggers)")
+    print("=" * 70)
     print("Status: Active and running in the background.")
-    print("Hotkey: Press [ Ctrl + Alt + A ] to polish any highlighted text.")
+    print("Triggers:")
+    print("  - !fix  ... !fix     : Fix grammar and typos")
+    print("  - !email ... !email   : Rewrite into professional email")
+    print("  - !casual ... !casual : Rewrite in warm, casual tone")
+    print("  - !expand ... !expand : Expand details and construct paragraphs")
     print("Press [ Ctrl + C ] in this terminal window to exit.")
-    print("-" * 60)
+    print("-" * 70)
+    print("🌀 [Typi] Standing by for triggers...")
     
-    # Register hotkey listener
-    keyboard.add_hotkey('ctrl+alt+a', trigger_writing_assistant)
+    # Start hook listening
+    keyboard.hook(on_key_event)
     
-    # Block and wait for termination signal
     try:
+        # Keep main thread alive
         keyboard.wait()
     except KeyboardInterrupt:
-        print("\n👋 [Typi Assistant] Daemon shut down gracefully. Goodbye!")
+        print("\n👋 [Typi] Daemon shut down gracefully. Goodbye!")
         sys.exit(0)
 
 if __name__ == "__main__":
