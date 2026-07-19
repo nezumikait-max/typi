@@ -1,7 +1,7 @@
-# 🌀 Typi Project Context
+# 🌀 Typi Writing Assistant: Project Context
 
 ## 🎯 Project Overview
-`typi` is a modular, high-performance CLI utility belt designed for developers and systems engineers. It integrates local file system automation utilities with advanced AI capabilities powered by the Google Gemini API.
+`typi` is a lightweight, system-wide AI Writing Assistant that runs as a background daemon. It mimics the seamless text correction features of Typi on Android, allowing users to polish any highlighted text globally across the operating system.
 
 ---
 
@@ -9,30 +9,20 @@
 
 ### Core Technologies
 - **Python 3.10+**: Core programming language.
-- **Typer**: CLI routing and argument/option parsing.
-- **Rich**: Terminal output styling, streaming Markdown rendering, and loading state visuals.
-- **python-dotenv**: Environment configuration resolution.
-- **google-genai**: Official Google GenAI SDK interface.
-- **moviepy**: Audio track extraction from video files.
+- **keyboard**: Intercepts the global hotkey (`Ctrl+Alt+A`), monitors event hooks, and programmatically simulates keystrokes (`Ctrl+C` and `Ctrl+V`).
+- **pyperclip**: Reads from and writes to the system clipboard.
+- **google-genai**: Google's official SDK interface to query the Gemini API.
+- **python-dotenv**: Resolves environment configurations.
 
-### Sub-Module Architecture
-The application uses a modular directory namespace layout:
-- [main.py](file:///C:/Users/eelri/.gemini/antigravity-cli/main.py): Registers command routers and loads environment tokens.
-- [commands/files.py](file:///C:/Users/eelri/.gemini/antigravity-cli/commands/files.py): Handles local I/O operations (shuffling structures and extensions organization).
-- [commands/ai.py](file:///C:/Users/eelri/.gemini/antigravity-cli/commands/ai.py): Handles integration with the Gemini API (multimodal audio analysis and query streams).
-
----
-
-## 🔒 Security & Safe-Handling Constraints
-- **Ignore files**: All credentials, local logs, caches, and runtime databases are strictly excluded via `.gitignore` to prevent leaking private client tokens.
-- **No Tracebacks**: All database, network, API, and filesystem interactions are wrapped in graceful exception blocks. Rather than emitting Python tracebacks, the app prints error messages formatted via Rich's standard console.
-- **Remote Data Cleanup**: Temporary audio assets are deleted immediately from both local disks and the remote Gemini Files storage API.
+### Codebase Structure
+The codebase consists of:
+- [config.py](file:///C:/Users/eelri/.gemini/antigravity-cli/config.py): Resolves the `GEMINI_API_KEY` from env or local `.env`.
+- [ai_engine.py](file:///C:/Users/eelri/.gemini/antigravity-cli/ai_engine.py): Communicates with `gemini-2.5-flash` using a strict system instruction to rewrite text without meta-dialogue.
+- [assistant.py](file:///C:/Users/eelri/.gemini/antigravity-cli/assistant.py): The main background daemon script running clipboard backups, hotkey interception, and key simulations.
 
 ---
 
-## 🎨 Visual Map Features
-The `shuffle` command generates a premium, dark-mode visual map ([typi_map.html](file:///C:/Users/eelri/.gemini/antigravity-cli/typi_map.html)) of the randomized structure. The interface features:
-- Glassmorphic card overlays.
-- A responsive collapsable folder tree (`<details>` / `<summary>`).
-- Interactive Javascript filtering to search for files.
-- Gradient typography matching developer dashboards.
+## 🔒 Security & Race-Condition Constraints
+- **Key Modifier Collisions**: Hotkey modifier keys (`ctrl`, `alt`, `a`) are explicitly released prior to copying or pasting to avoid interferences like `ctrl+alt+c` registering with the OS.
+- **No Data Loss**: The user's clipboard contents are immediately backed up before replacement, cleared to detect highlighting success, and restored immediately after paste execution.
+- **Graceful Error Handling**: OS-level keystrokes, clipboard interactions, and API payloads are wrapped in try-except-finally blocks to keep the daemon running continuously.

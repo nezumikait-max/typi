@@ -1,16 +1,16 @@
-# 🌀 Typi CLI
+# 🌀 Typi: AI Writing Assistant
 
-`typi` is a modular, production-ready CLI utility belt that bundles local filesystem automation and advanced Gemini-driven analytical processors under a single clean toolchain.
+`typi` is a lightweight, system-wide AI Writing Assistant for desktop. It runs quietly in the background as a daemon, listening for a global hotkey combination. When triggered, it grabs your highlighted text, refines it with Gemini's AI, and replaces it on the fly while preserving your clipboard history.
+
+---
 
 ## 🚀 Features
 
-### 📂 Files Module
-- **`shuffle`**: Recursively shuffles the locations of all files in a folder, cleans up defunct directories, and produces an interactive, search-enabled HTML directory layout tree (`typi_map.html`).
-- **`clean`**: Groups and sorts all root files in a folder into categorized directories (`images`, `documents`, `audio`, `videos`, `archives`, `code`, `executables`, `other`) based on their extensions.
-
-### 🧠 AI Module
-- **`analyze-video`**: Extracts audio from local video files, uploads the track to Gemini using the Files API, transcribes the claims, and produces a structured critical and logical analysis of the video's arguments.
-- **`ask`**: Sends text questions to Gemini, rendering the response with real-time streaming markdown directly in the terminal interface.
+- **System-Wide Operation**: Works in any editor, browser, terminal, or text field across your OS.
+- **Instant Hotkey Activation**: Highlight any text and press `Ctrl + Alt + A` to refine it immediately.
+- **Safety First (Clipboard Backup)**: Automatically backs up your current clipboard contents before capturing text and restores it immediately after pasting.
+- **Collision Prevention**: Automatically releases the hotkey modifier keys before simulated keystrokes to ensure clean OS-level copy (`Ctrl+C`) and paste (`Ctrl+V`) triggers.
+- **No Filler Output**: Utilizes a strict system prompt targeting `gemini-2.5-flash` to return only the corrected text without any conversational pleasantries or markdown wrappers.
 
 ---
 
@@ -22,44 +22,29 @@
    cd typi
    ```
 
-2. **Configure Environment Variables**:
-   Create a `.env` file in the root directory:
+2. **Configure Environment variables**:
+   Ensure you have a `.env` file in the root directory:
    ```env
    GEMINI_API_KEY=your_gemini_api_key_here
    ```
 
 3. **Install Dependencies**:
-   It is recommended to run this inside a virtual environment:
+   *Note: On Linux, `keyboard` may require running as root/sudo.*
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: .\venv\Scripts\activate
    pip install -r requirements.txt
+   ```
+
+4. **Start the Assistant**:
+   ```bash
+   python assistant.py
    ```
 
 ---
 
-## 📖 Command Reference
+## 📖 How to Use
 
-### File Shuffling
-```bash
-python main.py files shuffle "C:/path/to/target/folder"
-```
-*Rearranges the file system configuration and writes `typi_map.html` in the target directory.*
-
-### File Organizing (Cleaning)
-```bash
-python main.py files clean "C:/path/to/target/folder"
-```
-*Sorts root files into categorized extension folders.*
-
-### Ask Gemini (Text Streaming)
-```bash
-python main.py ai ask "Explain the logical structure of a reductio ad absurdum argument."
-```
-*Streams Gemini's markdown response directly to the console.*
-
-### Video Analysis (Logical & Argument Critique)
-```bash
-python main.py ai analyze-video "C:/path/to/philosophical_lecture.mp4"
-```
-*Transcribes and parses underlying premises, fallacies, and structural validity.*
+1. Start `assistant.py`.
+2. Highlight any text in any application (e.g. browser, Notepad, IDE, Slack).
+3. Press **`Ctrl + Alt + A`**.
+4. The console will report the status, and the highlighted text will be replaced in-place by the polished version.
+5. Your original clipboard contents remain intact.
