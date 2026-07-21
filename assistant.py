@@ -41,12 +41,17 @@ active_trigger = None
 captured_buffer = []
 typed_buffer = []
 
+# Concurrency state variables (handles user typing during Gemini processing)
+processing_state = False
+pending_typed_chars = []
+
 def deactivate_and_replace():
     """
     Called when a deactivation trigger is detected.
-    Removes the triggers and text from the screen, refines it, and writes it back.
+    Signals the processing state, requests AI replacement, deletes triggers,
+    injects polished text, and restores any text typed during the wait window.
     """
-    global active_trigger, captured_buffer, typed_buffer
+    global active_trigger, captured_buffer, typed_buffer, processing_state, pending_typed_chars
     
     trigger = active_trigger
     active_trigger = None
@@ -69,62 +74,84 @@ def deactivate_and_replace():
         
     print(f"\n🔴 [Typi] Deactivation trigger detected for '{trigger}'.")
     print(f"📖 [Typi] Captured text: \"{text_to_process.strip()[:40]}...\"")
+    print("🤖 [Typi] Calling AI engine (typing is unlocked during processing)...")
     
-    # Calculate backspaces required:
-    # 1. Length of activation trigger (e.g., 4 characters for '!fix')
-    # 2. Length of the captured text
-    # 3. Length of deactivation trigger (e.g., 4 characters for '!fix')
-    backspace_count = len(trigger) + len(text_to_process) + len(trigger)
+    # Enter processing state (we keep keyboard hooks active so user can type)
+    processing_state = True
+    pending_typed_chars.clear()
     
-    # Unhook keyboard events during simulation to prevent self-triggering feedback loops
+    # Fetch polished text from Gemini
+    prompt_info = TRIGGERS[trigger]
+    polished_text = None
+    try:
+        polished_text = ai_engine.process_text(text_to_process, prompt_info['system_prompt'])
+    except Exception as e:
+        print(f"⚠️ [Typi Error] Gemini lookup failed: {str(e)}")
+        polished_text = text_to_process
+        
+    # Check if the user aborted the processing state (e.g. by moving the cursor)
+    if not processing_state:
+        print("⚠️ [Typi] Aborted replacement because the cursor position changed during processing.")
+        return
+        
+    # Turn off processing state and temporarily unhook key listener to prevent simulated key capture
+    processing_state = False
     keyboard.unhook_all()
     
     try:
-        # Step 1: Send backspaces to delete the triggers and raw text from the screen
-        print(f"🧹 [Typi] Erasing triggers and raw text ({backspace_count} characters)...")
+        # Calculate backspaces required:
+        # [Activation Trigger] + [Captured Text] + [Deactivation Trigger] + [User typing during processing]
+        additional_text = "".join(pending_typed_chars)
+        backspace_count = len(trigger) + len(text_to_process) + len(trigger) + len(additional_text)
+        
+        # Step 1: Send backspaces to delete everything up to the start of the activation trigger
+        print(f"🧹 [Typi] Erasing text block ({backspace_count} characters)...")
         for _ in range(backspace_count):
             keyboard.send('backspace')
-            time.sleep(0.005)  # Tiny pause to ensure OS keystroke queue is not overloaded
+            time.sleep(0.005)
             
         time.sleep(0.05)
         
-        # Step 2: Query the Gemini API using the selected trigger prompt
-        prompt_info = TRIGGERS[trigger]
-        print(f"🤖 [Typi] Refinement role: {prompt_info['action_name']}...")
-        
-        polished_text = ai_engine.process_text(text_to_process, prompt_info['system_prompt'])
-        
-        # Step 3: Type the polished text back to the screen
+        # Step 2: Write the polished text
         print("✍️ [Typi] Writing polished text...")
         keyboard.write(polished_text)
+        
+        # Step 3: Re-type any characters the user typed during the processing delay
+        if additional_text:
+            print(f"✍️ [Typi] Restoring concurrently typed text: \"{additional_text}\"")
+            keyboard.write(additional_text)
+            
         print("🎉 [Typi] Text successfully refined!")
         
-    except Exception as e:
-        print(f"❌ [Typi Error] Replacement failed: {str(e)}")
-        # Safety fallback: restore what the user typed in case of failure
+    except Exception as replacement_err:
+        print(f"❌ [Typi Error] Replacement failed: {str(replacement_err)}")
+        # Safety fallback: restore original text and additional typed text
         try:
-            keyboard.write(text_to_process)
+            keyboard.write(text_to_process + additional_text)
         except:
             pass
             
     finally:
         # Re-register the key listener
+        pending_typed_chars.clear()
         keyboard.hook(on_key_event)
         print("🌀 [Typi] Standing by for triggers...")
 
 def on_key_event(event):
     """
     Hooked key listener callback. Monitors typed characters, keeps a rolling buffer,
-    and handles activation/deactivation triggers.
+    handles activation/deactivation, and logs typing during AI processing.
     """
-    global active_trigger, captured_buffer, typed_buffer
+    global active_trigger, captured_buffer, typed_buffer, processing_state, pending_typed_chars
     
     # Process key down events only
     if event.event_type == 'down':
         key_name = event.name
         
-        # Cancel recording on any explicit cursor movement to prevent writing in wrong positions
+        # Cancel any active captures if the cursor is moved (Arrows, Mouse focus keys)
         if key_name in ['left', 'right', 'up', 'down', 'esc', 'tab', 'home', 'end', 'page up', 'page down']:
+            if processing_state:
+                processing_state = False  # Aborts replacement to avoid typing in wrong fields
             if active_trigger:
                 print(f"⚠️ [Typi] Cursor movement detected ({key_name}). Resetting active trigger '{active_trigger}'.")
                 active_trigger = None
@@ -138,11 +165,14 @@ def on_key_event(event):
             
         # Handle Backspace
         if key_name == 'backspace':
+            if processing_state:
+                if pending_typed_chars:
+                    pending_typed_chars.pop()
+                return
             if active_trigger:
                 if captured_buffer:
                     captured_buffer.pop()
                 else:
-                    # If they deleted past the text, they are deleting the activation trigger
                     print(f"↩️ [Typi] Activation trigger '{active_trigger}' deleted. Resetting.")
                     active_trigger = None
             if typed_buffer:
@@ -159,6 +189,11 @@ def on_key_event(event):
         else:
             return  # Ignore other functional buttons (F1-F12, print screen, etc.)
             
+        # If in processing state, log typing to restore it later
+        if processing_state:
+            pending_typed_chars.append(char)
+            return
+            
         # Accumulate captured text if in active mode
         if active_trigger:
             captured_buffer.append(char)
@@ -172,11 +207,9 @@ def on_key_event(event):
         
         # Check triggers
         if active_trigger:
-            # Check for deactivation
             if current_str.endswith(active_trigger):
                 deactivate_and_replace()
         else:
-            # Check for activation
             for trigger in TRIGGERS.keys():
                 if current_str.endswith(trigger):
                     active_trigger = trigger
@@ -190,6 +223,7 @@ def main():
     print("🌀 Typi AI Writing Assistant Daemon (Inline Triggers)")
     print("=" * 70)
     print("Status: Active and running in the background.")
+    print("Note: The keyboard is unlocked and fully responsive during processing.")
     print("Triggers:")
     print("  - !fix  ... !fix     : Fix grammar and typos")
     print("  - !email ... !email   : Rewrite into professional email")
@@ -203,7 +237,6 @@ def main():
     keyboard.hook(on_key_event)
     
     try:
-        # Keep main thread alive
         keyboard.wait()
     except KeyboardInterrupt:
         print("\n👋 [Typi] Daemon shut down gracefully. Goodbye!")
