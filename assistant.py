@@ -148,6 +148,7 @@ def on_key_event(event):
     # Process key down events only
     if event.event_type == 'down':
         key_name = event.name
+        print(f"Captured key: '{key_name}'", flush=True)
         
         # Ignore modifier keys so they don't break character tracking
         if key_name in ['shift', 'ctrl', 'alt', 'windows', 'caps lock', 'num lock', 'scroll lock']:
