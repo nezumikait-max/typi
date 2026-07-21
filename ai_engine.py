@@ -1,6 +1,54 @@
 import config
 from google.genai import types
 
+def clean_filler(text: str) -> str:
+    """
+    Cleans up common Gemini conversational filler and markdown code blocks.
+    Ensures that only the pure, refined text is returned.
+    """
+    if not text:
+        return text
+
+    text = text.strip()
+
+    # 1. Strip markdown code block wrappers
+    if text.startswith("```") and text.endswith("```"):
+        lines = text.splitlines()
+        if len(lines) >= 3:
+            # Check if first line is a language tag (e.g., ```email) and strip it
+            text = "\n".join(lines[1:-1]).strip()
+
+    # 2. Strip common introductory preambles (case-insensitive)
+    filler_headers = [
+        "here is the rewritten text:",
+        "here is the polished text:",
+        "here is the corrected text:",
+        "here is the email:",
+        "here is the professional rewrite:",
+        "here is a professional rewrite:",
+        "here is the rewritten email:",
+        "rewritten text:",
+        "corrected version:",
+        "polished version:",
+        "here is the casual version:",
+        "here is the expanded version:",
+        "subject:"
+    ]
+
+    text_lower = text.lower()
+    for header in filler_headers:
+        if text_lower.startswith(header):
+            text = text[len(header):].strip()
+            
+            # If the output text was wrapped in quotes, strip them
+            if text.startswith('"') and text.endswith('"'):
+                text = text[1:-1].strip()
+            elif text.startswith("'") and text.endswith("'"):
+                text = text[1:-1].strip()
+            break
+
+    return text
+
 def process_text(text: str, system_instruction: str) -> str:
     """
     Processes the input text using Gemini 2.5 Flash with a custom system instruction.
@@ -37,13 +85,7 @@ def process_text(text: str, system_instruction: str) -> str:
         
         result = response.text
         if result:
-            result = result.strip()
-            # Post-processing fallback: remove code blocks if the model ignored instructions
-            if result.startswith("```") and result.endswith("```"):
-                lines = result.splitlines()
-                if len(lines) >= 3:
-                    result = "\n".join(lines[1:-1]).strip()
-            return result
+            return clean_filler(result)
             
         return text
         
