@@ -183,7 +183,9 @@ def on_key_event(event):
         
         # Check if the buffer ends with any trigger
         for trigger in TRIGGERS.keys():
-            if current_str.endswith(trigger):
+            # Match both '!email' and '1email' in case shift translation is skipped by the OS hook
+            alt_trigger = trigger.replace('!', '1')
+            if current_str.endswith(trigger) or current_str.endswith(alt_trigger):
                 typed_buffer.clear()
                 process_trigger_immediately(trigger)
                 break
