@@ -1,5 +1,10 @@
-import time
 import sys
+import time
+
+# Force UTF-8 encoding for standard output and error to support unicode emojis on Windows
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
+
 import keyboard
 import ai_engine
 
